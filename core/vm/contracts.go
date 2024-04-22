@@ -40,14 +40,14 @@ type PrecompiledContract interface {
 // PrecompiledContracts contains the default set of pre-compiled eminer-pro
 // contracts used in the Byzantium release.
 var PrecompiledContracts = map[common.Address]PrecompiledContract{
-	common.BytesToAddress([]byte{1}): &ecrecover{},
-	common.BytesToAddress([]byte{2}): &sha256hash{},
-	common.BytesToAddress([]byte{3}): &ripemd160hash{},
-	common.BytesToAddress([]byte{4}): &dataCopy{},
-	common.BytesToAddress([]byte{5}): &bigModExp{},
-	common.BytesToAddress([]byte{6}): &bn256Add{},
-	common.BytesToAddress([]byte{7}): &bn256ScalarMul{},
-	common.BytesToAddress([]byte{8}): &bn256Pairing{},
+	common.BytesToAddress([]byte{0x1}): &ecrecover{},
+	common.BytesToAddress([]byte{0x2}): &sha256hash{},
+	common.BytesToAddress([]byte{0x3}): &ripemd160hash{},
+	common.BytesToAddress([]byte{0x4}): &dataCopy{},
+	common.BytesToAddress([]byte{0x5}): &bigModExp{},
+	common.BytesToAddress([]byte{0x6}): &bn256Add{},
+	common.BytesToAddress([]byte{0x7}): &bn256ScalarMul{},
+	common.BytesToAddress([]byte{0x8}): &bn256Pairing{},
 }
 
 // RunPrecompiledContract runs and evaluates the output of a precompiled contract.
