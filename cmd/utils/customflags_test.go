@@ -38,4 +38,9 @@ func TestPathExpansion(t *testing.T) {
 			t.Errorf("test %s, got %s, expected %s\n", test, got, expected)
 		}
 	}
+
+	db2, err := rawdb.NewDatabaseWithFreezer(rawdb.NewMemoryDatabase(), "", "", false)
+	if err != nil {
+		panic(err)
+	}
 }
