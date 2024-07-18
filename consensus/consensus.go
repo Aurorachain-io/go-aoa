@@ -25,9 +25,9 @@ import (
 	"github.com/Aurorachain-io/go-aoa/rpc"
 )
 
-// ChainReader defines a small collection of methods needed to access the local
-// blockchain during header and/or uncle verification.
-type ChainReader interface {
+// ChainHeaderReader defines a small collection of methods needed to access the local
+// blockchain during header verification.
+type ChainHeaderReader interface {
 	// Config retrieves the blockchain's chain configuration.
 	Config() *params.ChainConfig
 
@@ -43,42 +43,75 @@ type ChainReader interface {
 	// GetHeaderByHash retrieves a block header from the database by its hash.
 	GetHeaderByHash(hash common.Hash) *types.Header
 
+	// GetTd retrieves the total difficulty from the database by hash and number.
+	GetTd(hash common.Hash, number uint64) *big.Int
+}
+
+// ChainReader defines a small collection of methods needed to access the local
+// blockchain during header and/or uncle verification.
+type ChainReader interface {
+	ChainHeaderReader
+
 	// GetBlock retrieves a block from the database by hash and number.
 	GetBlock(hash common.Hash, number uint64) *types.Block
 }
 
-// DAC consensus engine.
+// Engine is an algorithm agnostic consensus engine.
 type Engine interface {
-
-	// Author retrieves the dacchain address of the account that minted the given
+	// Author retrieves the Ethereum address of the account that minted the given
 	// block, which may be different from the header's coinbase if a consensus
 	// engine is based on signatures.
 	Author(header *types.Header) (common.Address, error)
 
-	Prepare(chain ChainReader, header *types.Header) error
-
-	Finalize(chain ChainReader, header *types.Header, state *state.StateDB, dState *delegatestate.DelegateDB, txs []*types.Transaction, receipts []*types.Receipt) (*types.Block, error)
-
 	// VerifyHeader checks whether a header conforms to the consensus rules of a
-	// given engine. Verifying the seal may be done optionally here, or explicitly
-	// via the VerifySeal method.
-	VerifyHeader(chain ChainReader, header *types.Header) error
-
-	// check the block header sign,check coinbase when receive block by delegate p2p net
-	VerifyHeaderAndSign(chain ChainReader, block *types.Block, currentShuffleList *types.ShuffleList, blockInterval int) error
-
-	// verify confirm sign is correct
-	VerifySignatureSend(blockHash common.Hash, confirmSign []byte, currentShuffleList *types.ShuffleList) error
-
-	// verify block when ordinary node receive
-	VerifyBlockGenerate(chain ChainReader, block *types.Block, currentShuffleList *types.ShuffleList, blockInterval int) error
+	// given engine.
+	VerifyHeader(chain ChainHeaderReader, header *types.Header) error
 
 	// VerifyHeaders is similar to VerifyHeader, but verifies a batch of headers
 	// concurrently. The method returns a quit channel to abort the operations and
 	// a results channel to retrieve the async verifications (the order is that of
 	// the input slice).
-	VerifyHeaders(chain ChainReader, headers []*types.Header) (chan<- struct{}, <-chan error)
+	VerifyHeaders(chain ChainHeaderReader, headers []*types.Header) (chan<- struct{}, <-chan error)
+
+	// VerifyUncles verifies that the given block's uncles conform to the consensus
+	// rules of a given engine.
+	VerifyUncles(chain ChainReader, block *types.Block) error
+
+	// Prepare initializes the consensus fields of a block header according to the
+	// rules of a particular engine. The changes are executed inline.
+	Prepare(chain ChainHeaderReader, header *types.Header) error
+
+	// Finalize runs any post-transaction state modifications (e.g. block rewards
+	// or process withdrawals) but does not assemble the block.
+	//
+	// Note: The state database might be updated to reflect any consensus rules
+	// that happen at finalization (e.g. block rewards).
+	Finalize(chain ChainHeaderReader, header *types.Header, state *state.StateDB, body *types.Body)
+
+	// FinalizeAndAssemble runs any post-transaction state modifications (e.g. block
+	// rewards or process withdrawals) and assembles the final block.
+	//
+	// Note: The block header and state database might be updated to reflect any
+	// consensus rules that happen at finalization (e.g. block rewards).
+	FinalizeAndAssemble(chain ChainHeaderReader, header *types.Header, state *state.StateDB, body *types.Body, receipts []*types.Receipt) (*types.Block, error)
+
+	// Seal generates a new sealing request for the given input block and pushes
+	// the result into the given channel.
+	//
+	// Note, the method returns immediately and will send the result async. More
+	// than one result may also be returned depending on the consensus algorithm.
+	Seal(chain ChainHeaderReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error
+
+	// SealHash returns the hash of a block prior to it being sealed.
+	SealHash(header *types.Header) common.Hash
+
+	// CalcDifficulty is the difficulty adjustment algorithm. It returns the difficulty
+	// that a new block should have.
+	CalcDifficulty(chain ChainHeaderReader, time uint64, parent *types.Header) *big.Int
 
 	// APIs returns the RPC APIs this consensus engine provides.
-	APIs(chain ChainReader) []rpc.API
+	APIs(chain ChainHeaderReader) []rpc.API
+
+	// Close terminates any background threads maintained by the consensus engine.
+	Close() error
 }
