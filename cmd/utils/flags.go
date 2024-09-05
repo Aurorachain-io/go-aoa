@@ -1054,6 +1054,31 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	return chain, chainDb
 }
 
+// MakeTrieDatabase constructs a trie database based on the configured scheme.
+func MakeTrieDatabase(ctx *cli.Context, disk ethdb.Database, preimage bool, readOnly bool, isVerkle bool) *triedb.Database {
+	config := &triedb.Config{
+		Preimages: preimage,
+		IsVerkle:  isVerkle,
+	}
+	scheme, err := rawdb.ParseStateScheme(ctx.String(StateSchemeFlag.Name), disk)
+	if err != nil {
+		Fatalf("%v", err)
+	}
+	if scheme == rawdb.HashScheme {
+		// Read-only mode is not implemented in hash mode,
+		// ignore the parameter silently. TODO(rjl493456442)
+		// please config it if read mode is implemented.
+		config.HashDB = hashdb.Defaults
+		return triedb.NewDatabase(disk, config)
+	}
+	if readOnly {
+		config.PathDB = pathdb.ReadOnly
+	} else {
+		config.PathDB = pathdb.Defaults
+	}
+	return triedb.NewDatabase(disk, config)
+}
+
 // MakeConsolePreloads retrieves the absolute paths for the console JavaScript
 // scripts to preload before starting.
 func MakeConsolePreloads(ctx *cli.Context) []string {
