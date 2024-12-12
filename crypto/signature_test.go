@@ -72,7 +72,7 @@ func TestVerifySignature(t *testing.T) {
 	wrongkey := common.CopyBytes(testpubkey)
 	wrongkey[10]++
 	if VerifySignature(wrongkey, testmsg, sig) {
-		t.Errorf("signature valid with with wrong public key")
+		t.Errorf("signature valid with wrong public key")
 	}
 }
 
@@ -133,20 +133,6 @@ func TestPubkeyRandom(t *testing.T) {
 			t.Fatalf("iteration %d: keys not equal", i)
 		}
 	}
-}
-
-func TestGenerateKey(t *testing.T) {
-	privateKey, err := GenerateKey()
-	if err != nil {
-		t.Fatalf("iteration %v", err)
-	}
-	publicKeyBytes := CompressPubkey(&privateKey.PublicKey)
-	publicKeyString := hexutil.Encode(publicKeyBytes[:])
-	publicKeyBytes2 := common.FromHex(publicKeyString)
-	publicKeyString2 := hexutil.Encode(publicKeyBytes2[:])
-	fmt.Println(publicKeyString)
-	fmt.Println(publicKeyString2)
-
 }
 
 func BenchmarkEcrecoverSignature(b *testing.B) {
